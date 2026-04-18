@@ -24,6 +24,25 @@ export function RangeBar({ tsData, brush, setBrush }) {
     };
   }
 
+  function middleDown(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    const startX = e.clientX;
+    const [startLo, startHi] = brush;
+    const width = startHi - startLo;
+    function mv(ev) {
+      const rect = trackRef.current.getBoundingClientRect();
+      const dIdx = Math.round(((ev.clientX - startX) / rect.width) * n);
+      let lo = startLo + dIdx, hi = startHi + dIdx;
+      if (lo < 0) { lo = 0; hi = width; }
+      if (hi > n) { hi = n; lo = n - width; }
+      setBrush([lo, hi]);
+    }
+    function up() { window.removeEventListener("mousemove", mv); window.removeEventListener("mouseup", up); }
+    window.addEventListener("mousemove", mv);
+    window.addEventListener("mouseup", up);
+  }
+
   function tsAt(i) { const d = tsData[Math.max(0, Math.min(i, n))]; return d ? String(d.ts) : ""; }
 
   const [loT, setLoT] = useState(() => tsAt(brush[0]));
@@ -54,7 +73,7 @@ export function RangeBar({ tsData, brush, setBrush }) {
           style={inp} />
         <div ref={trackRef} style={{ flex:1, position:"relative", height:18, cursor:"crosshair" }}>
           <div style={{ position:"absolute", top:"50%", transform:"translateY(-50%)", left:0, right:0, height:3, background:"#1e293b", borderRadius:2 }} />
-          <div style={{ position:"absolute", top:"50%", transform:"translateY(-50%)", left:pct(brush[0])+"%", width:(pct(brush[1])-pct(brush[0]))+"%", height:3, background:"#f43f5e", borderRadius:2 }} />
+          <div onMouseDown={middleDown} style={{ position:"absolute", top:"50%", transform:"translateY(-50%)", left:pct(brush[0])+"%", width:(pct(brush[1])-pct(brush[0]))+"%", height:7, background:"#f43f5e", borderRadius:2, cursor:"grab", zIndex:1 }} />
           <div onMouseDown={makeDown("lo")} style={hdl(pct(brush[0]))} />
           <div onMouseDown={makeDown("hi")} style={hdl(pct(brush[1]))} />
         </div>

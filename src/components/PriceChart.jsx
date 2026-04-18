@@ -7,6 +7,7 @@ import { isHidden, posColor, pnlColor } from "../seriesConfig.js";
 import {
   BuyOrderDot, SellOrderDot,
   BUY_FILL_GLOBAL, BUY_FILL_LOCAL, SELL_FILL_GLOBAL, SELL_FILL_LOCAL,
+  MARKET_TRADE_GLOBAL, MARKET_TRADE_LOCAL,
   BID1DOT, BID2DOT, BID3DOT, ASK1DOT, ASK2DOT, ASK3DOT,
 } from "../shapes.jsx";
 import { ChartTooltip } from "./ChartTooltip.jsx";
@@ -17,8 +18,9 @@ export const PriceChart = memo(function PriceChart({
   const touch      = parsedData.touch[sym]      || [];
   const placedBids = parsedData.placedBids[sym] || [];
   const placedAsks = parsedData.placedAsks[sym] || [];
-  const allFills   = parsedData.fills[sym]      || [];
-  const allSymbols = parsedData.symbols;
+  const allFills       = parsedData.fills[sym]        || [];
+  const allMarketTrades = parsedData.marketTrades?.[sym] || [];
+  const allSymbols     = parsedData.symbols;
 
   const [buyFills, sellFills] = useMemo(function () {
     const b = [], s = [];
@@ -35,12 +37,13 @@ export const PriceChart = memo(function PriceChart({
     }
     for (const d of placedBids) v.push(d.price);
     for (const d of placedAsks) v.push(d.price);
-    for (const d of allFills)   v.push(d.price);
+    for (const d of allFills)         v.push(d.price);
+    for (const d of allMarketTrades)  v.push(d.price);
     if (!v.length) return ["auto", "auto"];
     const lo = Math.min(...v), hi = Math.max(...v);
     const pad = (hi - lo) * 0.15 || 2;
     return [+(lo - pad).toFixed(1), +(hi + pad).toFixed(1)];
-  }, [touch, placedBids, placedAsks, allFills]);
+  }, [touch, placedBids, placedAsks, allFills, allMarketTrades]);
 
   const posDom = useMemo(function () {
     if (!showPosSeries) return [0, 1];
@@ -107,6 +110,10 @@ export const PriceChart = memo(function PriceChart({
         {!isHidden(hidden, "sellFill") && (
           <Scatter yAxisId="price" data={sellFills} dataKey="price" name="sell fill" fill="#fb923c"
             shape={isLocal ? <SELL_FILL_LOCAL /> : <SELL_FILL_GLOBAL />} isAnimationActive={false} legendType="none" />
+        )}
+        {!isHidden(hidden, "marketTrade") && (
+          <Scatter yAxisId="price" data={allMarketTrades} dataKey="price" name="mkt trade" fill="#e879f9"
+            shape={isLocal ? <MARKET_TRADE_LOCAL /> : <MARKET_TRADE_GLOBAL />} isAnimationActive={false} legendType="none" />
         )}
 
         {showPosSeries && allSymbols.map(function (s, i) {

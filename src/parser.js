@@ -3,12 +3,13 @@
 export function parseP4Json(text) {
   const raw = JSON.parse(text);
   const out = {
-    symbols:    [],
-    touch:      {},   // sym -> [{ts, mid, pnl, bid1..3, ask1..3, bv1..3, av1..3, movAvg}]
-    placedBids: {},   // sym -> [{ts, price, size}]
-    placedAsks: {},   // sym -> [{ts, price, size}]
-    fills:      {},   // sym -> [{ts, price, size, side}]
-    position:   {},   // sym -> [{ts, pos}]
+    symbols:      [],
+    touch:        {},   // sym -> [{ts, mid, pnl, bid1..3, ask1..3, bv1..3, av1..3, movAvg}]
+    placedBids:   {},   // sym -> [{ts, price, size}]
+    placedAsks:   {},   // sym -> [{ts, price, size}]
+    fills:        {},   // sym -> [{ts, price, size, side}]  — own trades only
+    marketTrades: {},   // sym -> [{ts, price, size}]        — third-party trades
+    position:     {},   // sym -> [{ts, pos}]
   };
   const symSet = new Set();
   const obMap  = {};  // ts -> sym -> { bid2,bid3,ask2,ask3 }
@@ -97,13 +98,17 @@ export function parseP4Json(text) {
   // ---- tradeHistory -----------------------------------------------------------
   if (raw.tradeHistory) {
     for (const t of raw.tradeHistory) {
-      if (t.buyer !== "SUBMISSION" && t.seller !== "SUBMISSION") continue;
       const sym = t.symbol; symSet.add(sym);
-      if (!out.fills[sym]) out.fills[sym] = [];
-      out.fills[sym].push({
-        ts: t.timestamp, price: +t.price, size: +t.quantity,
-        side: t.buyer === "SUBMISSION" ? "buy" : "sell",
-      });
+      if (t.buyer === "SUBMISSION" || t.seller === "SUBMISSION") {
+        if (!out.fills[sym]) out.fills[sym] = [];
+        out.fills[sym].push({
+          ts: t.timestamp, price: +t.price, size: +t.quantity,
+          side: t.buyer === "SUBMISSION" ? "buy" : "sell",
+        });
+      } else {
+        if (!out.marketTrades[sym]) out.marketTrades[sym] = [];
+        out.marketTrades[sym].push({ ts: t.timestamp, price: +t.price, size: +t.quantity });
+      }
     }
   }
 

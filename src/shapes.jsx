@@ -31,6 +31,25 @@ export const BUY_FILL_LOCAL   = makeCircleDot("#b7f359ff", true);
 export const SELL_FILL_GLOBAL = makeCircleDot("#fb923c", false);
 export const SELL_FILL_LOCAL  = makeCircleDot("#fbd23cff", true);
 
+// ---- Market trade diamonds (hollow, purple/magenta) -------------------------
+// Hollow diamond so they're clearly distinct from own-trade filled circles
+export function makeMarketDot(stroke, large) {
+  return function MarketDot({ cx, cy, payload }) {
+    if (cx == null || cy == null) return null;
+    const s = large ? scaleR(payload?.size, 5, 12) : scaleR(payload?.size, 2, 6);
+    const op = large ? 0.9 : 0.65;
+    return (
+      <polygon
+        points={`${cx},${cy - s} ${cx + s},${cy} ${cx},${cy + s} ${cx - s},${cy}`}
+        fill="none" stroke={stroke} strokeWidth={large ? 1.5 : 1} strokeOpacity={op}
+      />
+    );
+  };
+}
+
+export const MARKET_TRADE_GLOBAL = makeMarketDot("#e879f9", false);
+export const MARKET_TRADE_LOCAL  = makeMarketDot("#e879f9", true);
+
 // ---- Placed order triangles -------------------------------------------------
 // Larger (min 8px), brighter lime/red, outer glow ring so they dominate market dots
 export function BuyOrderDot({ cx, cy, payload }) {
