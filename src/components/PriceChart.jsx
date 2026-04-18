@@ -112,7 +112,7 @@ export const PriceChart = memo(function PriceChart({
             shape={isLocal ? <SELL_FILL_LOCAL /> : <SELL_FILL_GLOBAL />} isAnimationActive={false} legendType="none" />
         )}
         {!isHidden(hidden, "marketTrade") && (
-          <Scatter yAxisId="price" data={allMarketTrades} dataKey="price" name="mkt trade" fill="#e879f9"
+          <Scatter yAxisId="price" data={allMarketTrades} dataKey="price" name="mkt trade" fill="#d946ef"
             shape={isLocal ? <MARKET_TRADE_LOCAL /> : <MARKET_TRADE_GLOBAL />} isAnimationActive={false} legendType="none" />
         )}
 

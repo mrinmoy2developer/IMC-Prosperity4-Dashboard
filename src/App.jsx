@@ -46,8 +46,8 @@ export default function App() {
   const rawRef         = useRef(init ? lsLoadRaw() : null);
   const globalChartRef = useRef(null);
   const dragRef        = useRef(null);
-  const vert  = useResizable(36, 15, 65);
-  const horiz = useResizable(62, 25, 85);
+  const vert  = useResizable(36, 15, 65, "v");
+  const horiz = useResizable(62, 25, 85, "h");
 
   useEffect(function () {
     fetch(API + "/health", { signal: AbortSignal.timeout(1500) })
