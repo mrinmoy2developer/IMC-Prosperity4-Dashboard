@@ -1,7 +1,7 @@
 import { memo, useMemo } from "react";
 import {
   ComposedChart, Line, Scatter, XAxis, YAxis, CartesianGrid,
-  Tooltip, ReferenceArea, ResponsiveContainer,
+  Tooltip, ReferenceArea, ReferenceLine, ResponsiveContainer,
 } from "recharts";
 import { isHidden, posColor, pnlColor } from "../seriesConfig.js";
 import {
@@ -14,13 +14,14 @@ import { ChartTooltip } from "./ChartTooltip.jsx";
 
 export const PriceChart = memo(function PriceChart({
   sym, parsedData, hidden, refArea, showPosSeries, isLocal,
+  markerScale = 1, lineWidthScale = 1, pinTs, onPin,
 }) {
-  const touch      = parsedData.touch[sym]      || [];
-  const placedBids = parsedData.placedBids[sym] || [];
-  const placedAsks = parsedData.placedAsks[sym] || [];
-  const allFills       = parsedData.fills[sym]        || [];
+  const touch           = parsedData.touch[sym]          || [];
+  const placedBids      = parsedData.placedBids[sym]     || [];
+  const placedAsks      = parsedData.placedAsks[sym]     || [];
+  const allFills        = parsedData.fills[sym]          || [];
   const allMarketTrades = parsedData.marketTrades?.[sym] || [];
-  const allSymbols     = parsedData.symbols;
+  const allSymbols      = parsedData.symbols;
 
   const [buyFills, sellFills] = useMemo(function () {
     const b = [], s = [];
@@ -30,15 +31,11 @@ export const PriceChart = memo(function PriceChart({
 
   const priceDom = useMemo(function () {
     const v = [];
-    for (const d of touch) {
-      if (d.bid1 != null) v.push(d.bid1);
-      if (d.ask1 != null) v.push(d.ask1);
-      if (d.mid  != null) v.push(d.mid);
-    }
-    for (const d of placedBids) v.push(d.price);
-    for (const d of placedAsks) v.push(d.price);
-    for (const d of allFills)         v.push(d.price);
-    for (const d of allMarketTrades)  v.push(d.price);
+    for (const d of touch)          { if (d.bid1 != null) v.push(d.bid1); if (d.ask1 != null) v.push(d.ask1); if (d.mid != null) v.push(d.mid); }
+    for (const d of placedBids)     v.push(d.price);
+    for (const d of placedAsks)     v.push(d.price);
+    for (const d of allFills)       v.push(d.price);
+    for (const d of allMarketTrades) v.push(d.price);
     if (!v.length) return ["auto", "auto"];
     const lo = Math.min(...v), hi = Math.max(...v);
     const pad = (hi - lo) * 0.15 || 2;
@@ -59,17 +56,24 @@ export const PriceChart = memo(function PriceChart({
     return touch.length ? [touch[0].ts, touch[touch.length - 1].ts] : ["auto", "auto"];
   }, [touch]);
 
-  const bidLine = (dataKey, color, dash, dotComp) => (
+  const ms = markerScale;
+  const lw = lineWidthScale;
+
+  const bidLine = (dataKey, color, dash, DotComp) => (
     <Line yAxisId="price" data={touch} dataKey={dataKey} stroke={color}
-      dot={isLocal ? dotComp : false}
-      strokeWidth={isLocal ? 0.7 : 1}
+      dot={isLocal ? <DotComp scale={ms} /> : false}
+      strokeWidth={(isLocal ? 0.7 : 1) * lw}
       strokeDasharray={isLocal ? "3 3" : dash}
       isAnimationActive={false} legendType="none" connectNulls={false} />
   );
 
+  const handleClick = onPin
+    ? (data) => { if (data?.activeLabel != null) onPin(+data.activeLabel); }
+    : undefined;
+
   return (
     <ResponsiveContainer width="100%" height="100%">
-      <ComposedChart margin={{ top:4, right: showPosSeries ? 48 : 10, bottom:4, left:2 }}>
+      <ComposedChart margin={{ top:4, right: showPosSeries ? 48 : 10, bottom:4, left:2 }} onClick={handleClick}>
         <CartesianGrid strokeDasharray="2 4" stroke="#1e293b" />
         <XAxis dataKey="ts" type="number" domain={xDom}
           tick={{ fill:"#475569", fontSize:9 }} tickLine={false} allowDuplicatedCategory={false} />
@@ -82,8 +86,8 @@ export const PriceChart = memo(function PriceChart({
         )}
         <Tooltip content={<ChartTooltip />} isAnimationActive={false} />
 
-        {!hidden.mid    && <Line yAxisId="price" data={touch} dataKey="mid"    stroke="#60a5fa" dot={false} strokeWidth={1.5} isAnimationActive={false} legendType="none" connectNulls={false} />}
-        {!hidden.movAvg && <Line yAxisId="price" data={touch} dataKey="movAvg" stroke="#f97316" dot={false} strokeWidth={1}   isAnimationActive={false} strokeDasharray="5 3" legendType="none" connectNulls={false} />}
+        {!hidden.mid    && <Line yAxisId="price" data={touch} dataKey="mid"    stroke="#60a5fa" dot={false} strokeWidth={1.5 * lw} isAnimationActive={false} legendType="none" connectNulls={false} />}
+        {!hidden.movAvg && <Line yAxisId="price" data={touch} dataKey="movAvg" stroke="#f97316" dot={false} strokeWidth={1   * lw} isAnimationActive={false} strokeDasharray="5 3" legendType="none" connectNulls={false} />}
         {!hidden.bid1   && bidLine("bid1", "#34d399",   "4 2", BID1DOT)}
         {!hidden.bid2   && bidLine("bid2", "#34d39988", "3 3", BID2DOT)}
         {!hidden.bid3   && bidLine("bid3", "#34d39955", "2 4", BID3DOT)}
@@ -92,28 +96,28 @@ export const PriceChart = memo(function PriceChart({
         {!hidden.ask3   && bidLine("ask3", "#fb718555", "2 4", ASK3DOT)}
         {!isHidden(hidden, "pnl") && (
           <Line yAxisId="price" data={touch} dataKey="pnl" stroke="#e2e240" dot={false}
-            strokeWidth={1.2} isAnimationActive={false} legendType="none" connectNulls={false} />
+            strokeWidth={1.2 * lw} isAnimationActive={false} legendType="none" connectNulls={false} />
         )}
 
         {!isHidden(hidden, "placedBid") && (
           <Scatter yAxisId="price" data={placedBids} dataKey="price" name="placed bid"
-            fill="#22c55e" shape={<BuyOrderDot />} isAnimationActive={false} legendType="none" />
+            fill="#22c55e" shape={<BuyOrderDot scale={ms} />} isAnimationActive={false} legendType="none" />
         )}
         {!isHidden(hidden, "placedAsk") && (
           <Scatter yAxisId="price" data={placedAsks} dataKey="price" name="placed ask"
-            fill="#f43f5e" shape={<SellOrderDot />} isAnimationActive={false} legendType="none" />
+            fill="#f43f5e" shape={<SellOrderDot scale={ms} />} isAnimationActive={false} legendType="none" />
         )}
         {!isHidden(hidden, "buyFill") && (
           <Scatter yAxisId="price" data={buyFills} dataKey="price" name="buy fill" fill="#a3e635"
-            shape={isLocal ? <BUY_FILL_LOCAL /> : <BUY_FILL_GLOBAL />} isAnimationActive={false} legendType="none" />
+            shape={isLocal ? <BUY_FILL_LOCAL scale={ms} /> : <BUY_FILL_GLOBAL scale={ms} />} isAnimationActive={false} legendType="none" />
         )}
         {!isHidden(hidden, "sellFill") && (
           <Scatter yAxisId="price" data={sellFills} dataKey="price" name="sell fill" fill="#fb923c"
-            shape={isLocal ? <SELL_FILL_LOCAL /> : <SELL_FILL_GLOBAL />} isAnimationActive={false} legendType="none" />
+            shape={isLocal ? <SELL_FILL_LOCAL scale={ms} /> : <SELL_FILL_GLOBAL scale={ms} />} isAnimationActive={false} legendType="none" />
         )}
         {!isHidden(hidden, "marketTrade") && (
           <Scatter yAxisId="price" data={allMarketTrades} dataKey="price" name="mkt trade" fill="#d946ef"
-            shape={isLocal ? <MARKET_TRADE_LOCAL /> : <MARKET_TRADE_GLOBAL />} isAnimationActive={false} legendType="none" />
+            shape={isLocal ? <MARKET_TRADE_LOCAL scale={ms} /> : <MARKET_TRADE_GLOBAL scale={ms} />} isAnimationActive={false} legendType="none" />
         )}
 
         {showPosSeries && allSymbols.map(function (s, i) {
@@ -122,7 +126,7 @@ export const PriceChart = memo(function PriceChart({
           if (!posData.length) return null;
           return (
             <Line key={"pos_"+s} yAxisId="pos" data={posData} dataKey="pos"
-              stroke={posColor(i)} dot={false} strokeWidth={1.5} type="stepAfter"
+              stroke={posColor(i)} dot={false} strokeWidth={1.5 * lw} type="stepAfter"
               isAnimationActive={false} legendType="none" />
           );
         })}
@@ -133,7 +137,7 @@ export const PriceChart = memo(function PriceChart({
           if (!pd.length) return null;
           return (
             <Line key={"pnl_"+s} yAxisId="price" data={pd} dataKey="pnl"
-              stroke={pnlColor(i)} dot={false} strokeWidth={1.2}
+              stroke={pnlColor(i)} dot={false} strokeWidth={1.2 * lw}
               isAnimationActive={false} legendType="none" connectNulls={false} />
           );
         })}
@@ -142,16 +146,25 @@ export const PriceChart = memo(function PriceChart({
           <ReferenceArea yAxisId="price" x1={refArea[0]} x2={refArea[1]}
             fill="#f43f5e" fillOpacity={0.1} stroke="#f43f5e" strokeOpacity={0.35} />
         )}
+
+        {pinTs != null && (
+          <ReferenceLine yAxisId="price" x={pinTs}
+            stroke="#ef4444" strokeWidth={1.5} strokeDasharray="4 2" />
+        )}
       </ComposedChart>
     </ResponsiveContainer>
   );
 }, function areEqual(prev, next) {
   return (
-    prev.sym           === next.sym &&
-    prev.parsedData    === next.parsedData &&
-    prev.hidden        === next.hidden &&
-    prev.refArea       === next.refArea &&
-    prev.showPosSeries === next.showPosSeries &&
-    prev.isLocal       === next.isLocal
+    prev.sym            === next.sym &&
+    prev.parsedData     === next.parsedData &&
+    prev.hidden         === next.hidden &&
+    prev.refArea        === next.refArea &&
+    prev.showPosSeries  === next.showPosSeries &&
+    prev.isLocal        === next.isLocal &&
+    prev.markerScale    === next.markerScale &&
+    prev.lineWidthScale === next.lineWidthScale &&
+    prev.pinTs          === next.pinTs &&
+    prev.onPin          === next.onPin
   );
 });

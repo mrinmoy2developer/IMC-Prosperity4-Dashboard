@@ -42,10 +42,15 @@ export default function App() {
   const [apiFile,    setApiFile]    = useState("");
   const [apiLoading, setApiLoading] = useState(false);
 
+  const [settings,     setSettings]     = useState({ markerScale: 1, lineWidthScale: 1 });
+  const [showSettings, setShowSettings] = useState(false);
+  const [pinTs,        setPinTs]        = useState(null);
+
   const fileRef        = useRef(null);
   const rawRef         = useRef(init ? lsLoadRaw() : null);
   const globalChartRef = useRef(null);
   const dragRef        = useRef(null);
+  const wasDragRef     = useRef(false);
   const vert  = useResizable(36, 15, 65, "v");
   const horiz = useResizable(62, 25, 85, "h");
 
@@ -69,7 +74,7 @@ export default function App() {
   function applyParsed(p, name, raw) {
     const first = p.symbols[0] || "";
     const b = [0, Math.min(50, (p.touch[first] || []).length - 1)];
-    setParsed(p); setSym(first); setBrush(b); setFileName(name);
+    setParsed(p); setSym(first); setBrush(b); setFileName(name); setPinTs(null);
     setHiddenG(DEFAULT_HIDDEN_G); setHiddenL(DEFAULT_HIDDEN_L);
     rawRef.current = raw || null;
     lsSave(raw || "", { sym:first, brush:b, fileName:name, hiddenG:DEFAULT_HIDDEN_G, hiddenL:DEFAULT_HIDDEN_L });
@@ -139,7 +144,7 @@ export default function App() {
   function toggleL(key) { const n = Object.assign({}, hiddenL, {[key]:!hiddenL[key]}); setHiddenL(n); persistMeta({hiddenL:n}); }
   function changeSym(s) {
     const b = [0, Math.min(50, (parsed.touch[s]||[]).length-1)];
-    setSym(s); setBrush(b); persistMeta({sym:s,brush:b});
+    setSym(s); setBrush(b); setPinTs(null); persistMeta({sym:s,brush:b});
   }
   const setBrushP = useCallback(valOrFn => setBrush(prev => {
     const next = typeof valOrFn === "function" ? valOrFn(prev) : valOrFn;
@@ -155,15 +160,19 @@ export default function App() {
     const x0 = e.clientX - rect.left - lo_off;
     if (x0 < 0 || x0 > usable) return;
     dragRef.current = { startIdx: toIdx(x0) };
+    wasDragRef.current = false;
     function onMove(ev) {
       if (!dragRef.current) return;
       const i2 = toIdx(ev.clientX - rect.left - lo_off);
       const lo = Math.min(dragRef.current.startIdx, i2), hi = Math.max(dragRef.current.startIdx, i2);
-      if (hi > lo) setBrushP([lo, hi]);
+      if (hi > lo) { setBrushP([lo, hi]); wasDragRef.current = true; }
     }
     function onUp() { dragRef.current = null; window.removeEventListener("mousemove",onMove); window.removeEventListener("mouseup",onUp); }
     window.addEventListener("mousemove", onMove); window.addEventListener("mouseup", onUp);
   }
+
+  const onPinGlobal = useCallback(ts => { if (!wasDragRef.current) setPinTs(ts); }, []);
+  const onPinLocal  = useCallback(ts => setPinTs(ts), []);
 
   const tsData  = parsed.touch[sym] || [];
   const safeEnd = Math.min(brush[1], tsData.length-1);
@@ -191,6 +200,31 @@ export default function App() {
   const localLen    = (localParsed.touch[sym]||[]).length;
   const btn = { border:"none", borderRadius:3, padding:"5px 12px", cursor:"pointer", fontSize:10, fontWeight:700, fontFamily:"inherit" };
   const inp = { background:"#0f172a", color:"#94a3b8", border:"1px solid #1e293b", borderRadius:3, padding:"4px 8px", fontSize:10, fontFamily:"inherit", outline:"none" };
+
+  function SettingsPanel() {
+    return (
+      <div style={{ position:"absolute", top:36, right:0, zIndex:300, background:"#0a1628", border:"1px solid #1e293b", borderRadius:6, padding:"14px 16px", minWidth:230, boxShadow:"0 8px 28px rgba(0,0,0,0.7)" }}>
+        <div style={{ fontSize:9, color:"#475569", marginBottom:12, letterSpacing:"0.12em", textTransform:"uppercase" }}>Display Settings</div>
+        {[
+          { key:"markerScale",    label:"Marker size",   min:0.3, max:3 },
+          { key:"lineWidthScale", label:"Line width",    min:0.3, max:3 },
+        ].map(({ key, label, min, max }) => (
+          <div key={key} style={{ marginBottom:10 }}>
+            <div style={{ display:"flex", justifyContent:"space-between", fontSize:9, color:"#64748b", marginBottom:4 }}>
+              <span>{label}</span><span style={{ color:"#94a3b8" }}>{settings[key].toFixed(1)}×</span>
+            </div>
+            <input type="range" min={min} max={max} step="0.1" value={settings[key]}
+              onChange={e => setSettings(s => ({ ...s, [key]: +e.target.value }))}
+              style={{ width:"100%", accentColor:"#38bdf8", cursor:"pointer" }} />
+          </div>
+        ))}
+        <button onClick={() => setSettings({ markerScale:1, lineWidthScale:1 })}
+          style={{ ...btn, background:"#1e293b", color:"#64748b", fontSize:9, padding:"3px 10px", marginTop:2, width:"100%" }}>
+          reset defaults
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div style={{ background:"#020817", color:"#e2e8f0", height:"100vh", display:"flex", flexDirection:"column", fontFamily:"'JetBrains Mono','Fira Code',monospace", overflow:"hidden" }}>
@@ -242,6 +276,11 @@ export default function App() {
         )}
 
         <span style={{ fontSize:9, color:"#1e3a5f" }}>{tsData.length}t &middot; {totalOrders}o &middot; {totalFills}f</span>
+        <div style={{ position:"relative" }}>
+          <button onClick={() => setShowSettings(s => !s)} title="Display settings"
+            style={{ ...btn, background: showSettings ? "#1e3a5f" : "#0f172a", color: showSettings ? "#38bdf8" : "#475569", border:"1px solid #1e293b", fontSize:15, padding:"3px 9px", lineHeight:1 }}>⚙</button>
+          {showSettings && <SettingsPanel />}
+        </div>
         <button onClick={reset} style={{ ...btn, background:"#be123c", color:"#fff" }}>Reset</button>
       </div>
 
@@ -254,7 +293,9 @@ export default function App() {
             <div ref={globalChartRef} onMouseDown={globalMouseDown}
               style={{ flex:1, minWidth:0, cursor:tsData.length?"crosshair":"default", userSelect:"none" }}>
               {sym
-                ? <PriceChart sym={sym} parsedData={parsed} hidden={hiddenG} refArea={refArea} showPosSeries={true} />
+                ? <PriceChart sym={sym} parsedData={parsed} hidden={hiddenG} refArea={refArea} showPosSeries={true}
+                    markerScale={settings.markerScale} lineWidthScale={settings.lineWidthScale}
+                    pinTs={pinTs} onPin={onPinGlobal} />
                 : <div style={{ display:"flex", alignItems:"center", justifyContent:"center", height:"100%", color:"#1e3a5f", fontSize:11 }}>load a P4 JSON log to begin</div>
               }
             </div>
@@ -274,7 +315,9 @@ export default function App() {
             <Label text={"LOCAL — ticks "+brush[0]+"–"+brush[1]+" ("+localLen+" pts)"} />
             <CustomLegend priceSeries={PRICE_SERIES} symbols={parsed.symbols} hidden={hiddenL} onToggle={toggleL} />
             <div style={{ flex:1, minHeight:0 }}>
-              {sym && <PriceChart sym={sym} parsedData={localParsed} hidden={hiddenL} refArea={null} showPosSeries={true} isLocal={true} />}
+              {sym && <PriceChart sym={sym} parsedData={localParsed} hidden={hiddenL} refArea={null} showPosSeries={true} isLocal={true}
+                markerScale={settings.markerScale} lineWidthScale={settings.lineWidthScale}
+                pinTs={pinTs} onPin={onPinLocal} />}
             </div>
           </div>
 
@@ -286,7 +329,7 @@ export default function App() {
           <div style={{ flex:1, minWidth:0, display:"flex", flexDirection:"column", padding:"8px 16px 8px 0" }}>
             <Label text={"DATA TABLE — "+sym+" — ts "+tsRange[0]+" to "+tsRange[1]} />
             <div style={{ flex:1, minHeight:0, border:"1px solid #0f172a", borderRadius:3, overflow:"hidden" }}>
-              {sym ? <DataTable sym={sym} parsedData={parsed} tsRange={tsRange} />
+              {sym ? <DataTable sym={sym} parsedData={parsed} tsRange={tsRange} pinTs={pinTs} />
                    : <div style={{ display:"flex", alignItems:"center", justifyContent:"center", height:"100%", color:"#1e3a5f", fontSize:11 }}>no data</div>}
             </div>
           </div>
