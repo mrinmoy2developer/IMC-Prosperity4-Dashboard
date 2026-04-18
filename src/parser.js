@@ -97,6 +97,7 @@ export function parseP4Json(text) {
   // ---- tradeHistory -----------------------------------------------------------
   if (raw.tradeHistory) {
     for (const t of raw.tradeHistory) {
+      if (t.buyer !== "SUBMISSION" && t.seller !== "SUBMISSION") continue;
       const sym = t.symbol; symSet.add(sym);
       if (!out.fills[sym]) out.fills[sym] = [];
       out.fills[sym].push({
