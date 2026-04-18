@@ -10,14 +10,15 @@ export const PRICE_SERIES = [
   { key: "pnl",       label: "pnl",        color: "#e2e240", type: "line",    dash: undefined },
   { key: "placedBid", label: "placed bid", color: "#22c55e", type: "scatter", shape: "tri-down" },
   { key: "placedAsk", label: "placed ask", color: "#f43f5e", type: "scatter", shape: "tri-up"   },
-  { key: "buyFill",   label: "buy fill",   color: "#a3e635", type: "scatter", shape: "circle"   },
-  { key: "sellFill",  label: "sell fill",  color: "#fb923c", type: "scatter", shape: "circle"   },
+  { key: "buyFill",     label: "buy fill",   color: "#a3e635", type: "scatter", shape: "circle"   },
+  { key: "sellFill",   label: "sell fill",  color: "#fb923c", type: "scatter", shape: "circle"   },
+  { key: "marketTrade",label: "mkt trade",  color: "#e879f9", type: "scatter", shape: "diamond"  },
 ];
 
 // Global view defaults: show only essentials (mid, bid/ask L1, fills)
 export const DEFAULT_HIDDEN_G = {
   movAvg: true, bid2: true, bid3: true, ask2: true, ask3: true,
-  pnl: true, placedBid: true, placedAsk: true,
+  pnl: true, placedBid: true, placedAsk: true, marketTrade: true,
 };
 
 // Local view defaults: hide combined pnl; per-symbol pnl_SYM defaults via isHidden(…, true)

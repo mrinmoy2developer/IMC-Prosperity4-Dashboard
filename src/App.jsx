@@ -10,7 +10,7 @@ import { RangeBar }     from "./components/RangeBar.jsx";
 import { StatsPanel }   from "./components/StatsPanel.jsx";
 
 const API  = "http://localhost:3001";
-const EMPTY = { symbols:[], touch:{}, placedBids:{}, placedAsks:{}, fills:{}, position:{} };
+const EMPTY = { symbols:[], touch:{}, placedBids:{}, placedAsks:{}, fills:{}, marketTrades:{}, position:{} };
 
 function Label({ text }) {
   return <div style={{ fontSize:9, color:"#475569", letterSpacing:"0.12em", textTransform:"uppercase", marginBottom:3, paddingLeft:2 }}>{text}</div>;
@@ -149,7 +149,8 @@ export default function App() {
   function globalMouseDown(e) {
     if (!tsData.length || !globalChartRef.current) return;
     const rect = globalChartRef.current.getBoundingClientRect();
-    const lo_off = 66, hi_off = 58, usable = rect.width - lo_off - hi_off;
+    // lo_off = chart margin.left(2) + yAxis width(50); hi_off = margin.right(48) + right yAxis width(38)
+    const lo_off = 52, hi_off = 86, usable = rect.width - lo_off - hi_off;
     const toIdx = x => Math.max(0, Math.min(tsData.length-1, Math.round((x/usable)*(tsData.length-1))));
     const x0 = e.clientX - rect.left - lo_off;
     if (x0 < 0 || x0 > usable) return;
@@ -179,8 +180,9 @@ export default function App() {
       touch:      { [sym]: tsData.slice(brush[0], brush[1]+1) },
       placedBids: { [sym]: (parsed.placedBids[sym]||[]).filter(d=>d.ts>=lo&&d.ts<=hi) },
       placedAsks: { [sym]: (parsed.placedAsks[sym]||[]).filter(d=>d.ts>=lo&&d.ts<=hi) },
-      fills:      { [sym]: (parsed.fills[sym]     ||[]).filter(d=>d.ts>=lo&&d.ts<=hi) },
-      position:   lp,
+      fills:        { [sym]: (parsed.fills[sym]        ||[]).filter(d=>d.ts>=lo&&d.ts<=hi) },
+      marketTrades: { [sym]: (parsed.marketTrades[sym] ||[]).filter(d=>d.ts>=lo&&d.ts<=hi) },
+      position:     lp,
     };
   }, [parsed, sym, brush[0], brush[1]]); // eslint-disable-line
 
