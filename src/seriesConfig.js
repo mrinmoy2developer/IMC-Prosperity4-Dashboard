@@ -12,7 +12,7 @@ export const PRICE_SERIES = [
   { key: "placedAsk", label: "placed ask", color: "#f43f5e", type: "scatter", shape: "tri-up"   },
   { key: "buyFill",     label: "buy fill",   color: "#a3e635", type: "scatter", shape: "circle"   },
   { key: "sellFill",   label: "sell fill",  color: "#fb923c", type: "scatter", shape: "circle"   },
-  { key: "marketTrade",label: "mkt trade",  color: "#e879f9", type: "scatter", shape: "diamond"  },
+  { key: "marketTrade",label: "mkt trade",  color: "#d946ef", type: "scatter", shape: "circle"   },
 ];
 
 // Global view defaults: show only essentials (mid, bid/ask L1, fills)
