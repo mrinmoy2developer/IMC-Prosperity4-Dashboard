@@ -25,7 +25,7 @@ export function DataTable({ sym, parsedData, tsRange, pinTs }) {
       pBid:  (pbMap[d.ts] || []).join(" "),
       pAsk:  (paMap[d.ts] || []).join(" "),
       fills: fillsMap[d.ts] || [],
-      mkt:   (mktMap[d.ts]  || []).map(m => m.price+"×"+m.size).join(" "),
+      mkt:   mktMap[d.ts] || [],
     }));
   }, [touch, placedBids, placedAsks, fills, marketTrades, position]);
 
@@ -69,7 +69,18 @@ export function DataTable({ sym, parsedData, tsRange, pinTs }) {
           ))
         : null,
       title:"My fills — green=buy orange=sell (price×qty)" },
-    { h:"mkt trades", get: r => r.mkt,  color:"#d946ef",  title:"Market trades (price×qty)" },
+    { h:"mkt trades",
+      render: r => r.mkt.length
+        ? r.mkt.map((m, i) => (
+            <span key={i} style={{ marginLeft: i ? 6 : 0, whiteSpace:"nowrap" }}>
+              <span style={{ color:"#60a5fa" }}>{m.buyer}</span>
+              <span style={{ color:"#94a3b8" }}>→</span>
+              <span style={{ color:"#fb7185" }}>{m.seller}</span>
+              <span style={{ color:"#d946ef" }}> {m.price}×{m.size}</span>
+            </span>
+          ))
+        : null,
+      title:"Market trades — buyer→seller price×qty" },
   ];
 
   return (

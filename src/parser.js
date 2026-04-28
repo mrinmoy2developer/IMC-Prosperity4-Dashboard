@@ -107,7 +107,7 @@ export function parseP4Json(text) {
         });
       } else {
         if (!out.marketTrades[sym]) out.marketTrades[sym] = [];
-        out.marketTrades[sym].push({ ts: t.timestamp, price: +t.price, size: +t.quantity });
+        out.marketTrades[sym].push({ ts: t.timestamp, price: +t.price, size: +t.quantity, buyer: t.buyer, seller: t.seller });
       }
     }
   }
